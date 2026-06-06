@@ -72,7 +72,15 @@ pub fn get_language(name: &str) -> Result<Option<Grammar>> {
 pub fn get_language(name: &str) -> Result<Option<Grammar>> {
     let mut rel_library_path = PathBuf::new().join("grammars").join(name);
     rel_library_path.set_extension(DYLIB_EXTENSION);
-    let library_path = crate::runtime_file(&rel_library_path);
+    #[cfg_attr(not(target_os = "macos"), allow(unused_mut))]
+    let mut library_path = crate::runtime_file(&rel_library_path);
+    // macOS: also accept the `.so` suffix produced by upstream/official
+    // builds — Mach-O loads fine regardless of the file extension.
+    #[cfg(target_os = "macos")]
+    if !library_path.exists() {
+        rel_library_path.set_extension("so");
+        library_path = crate::runtime_file(&rel_library_path);
+    }
     if !library_path.exists() {
         return Ok(None);
     }
