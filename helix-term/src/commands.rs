@@ -1,5 +1,5 @@
 pub(crate) mod dap;
-pub(crate) mod engine;
+pub mod engine;
 pub(crate) mod lsp;
 pub(crate) mod syntax;
 pub(crate) mod typed;

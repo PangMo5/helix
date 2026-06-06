@@ -42,8 +42,18 @@ const DEFAULT_PLUGIN_PRECEDENCE: &[PluginSystemTypes] = &[
 static PLUGIN_PRECEDENCE: once_cell::sync::OnceCell<Vec<PluginSystemTypes>> =
     once_cell::sync::OnceCell::new();
 
+/// Embedders (GUI frontends) may dispatch into the engine before
+/// `run_initialization_script` has set the precedence; fall back to the
+/// no-op engine instead of panicking.
+const UNINITIALIZED_PLUGIN_PRECEDENCE: &[PluginSystemTypes] =
+    &[PluginSystemTypes::None(NoEngine)];
+
 fn plugins() -> impl Iterator<Item = &'static PluginSystemTypes> {
-    PLUGIN_PRECEDENCE.get().unwrap().iter()
+    PLUGIN_PRECEDENCE
+        .get()
+        .map(Vec::as_slice)
+        .unwrap_or(UNINITIALIZED_PLUGIN_PRECEDENCE)
+        .iter()
 }
 
 pub struct NoEngine;
