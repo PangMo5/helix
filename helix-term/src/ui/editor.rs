@@ -44,6 +44,9 @@ pub struct EditorView {
     spinners: ProgressSpinners,
     /// Tracks if the terminal window is focused by reaction to terminal focus events
     terminal_focused: bool,
+    /// GUI frontends draw all cursors as primitives, so block cursors are
+    /// returned from `cursor()` (not Hidden) and not baked into the grid.
+    gui_mode: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -67,7 +70,13 @@ impl EditorView {
             completion: None,
             spinners: ProgressSpinners::default(),
             terminal_focused: true,
+            gui_mode: false,
         }
+    }
+
+    /// Enable GUI cursor handling (see `gui_mode`).
+    pub fn set_gui_mode(&mut self, enabled: bool) {
+        self.gui_mode = enabled;
     }
 
     pub fn spinners_mut(&mut self) -> &mut ProgressSpinners {
@@ -160,7 +169,7 @@ impl EditorView {
                 view,
                 theme,
                 &config.cursor_shape,
-                self.terminal_focused,
+                self.terminal_focused && !self.gui_mode,
             ));
             if let Some(overlay) = Self::highlight_focused_view_elements(view, doc, theme) {
                 overlays.push(overlay);
@@ -1721,6 +1730,10 @@ impl Component for EditorView {
     }
 
     fn cursor(&self, _area: Rect, editor: &Editor) -> (Option<Position>, CursorKind) {
+        // GUI frontends draw every cursor (including blocks) as a primitive.
+        if self.gui_mode {
+            return editor.cursor();
+        }
         match editor.cursor() {
             // all block cursors are drawn manually
             (pos, CursorKind::Block) => {
